@@ -1,76 +1,54 @@
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
 
-const fs = require("node:fs");
-const path = require("node:path");
+const HOST = 'bitshift-daily.pages.dev';
+const KEY = 'f415bd52dd47451c8a88078c77c9ae87'; // Apni IndexNow key yahan dalein
+const KEY_LOCATION = `https://bitshift-daily.pages.dev/f415bd52dd47451c8a88078c77c9ae87.txt`;
 
-const HOST = "bitshift-daily.pages.dev";
-const SITE = `https://${HOST}`;
-const URLS_FILE = path.join(__dirname, "urls.txt");
+const urlsFile = path.join(__dirname, 'urls.txt');
+let urlList = [];
 
-async function main() {
-  const key = process.env.INDEXNOW_KEY;
-
-  if (!key || !/^[a-zA-Z0-9-]{8,128}$/.test(key)) {
-    throw new Error("INDEXNOW_KEY secret is missing or invalid.");
-  }
-
-  const keyLocation = `${SITE}/${key}.txt`;
-  const verification = await fetch(keyLocation);
-
-  if (!verification.ok) {
-    throw new Error(
-      `Key verification failed: ${keyLocation} (HTTP ${verification.status})`
-    );
-  }
-
-  if ((await verification.text()).trim() !== key) {
-    throw new Error("The live key file does not match INDEXNOW_KEY.");
-  }
-
-  const raw = fs.readFileSync(URLS_FILE, "utf8")
-    .split(/\r?\n/)
-    .map(line => line.trim())
-    .filter(line => line && !line.startsWith("#"));
-
-  const urls = [...new Set(raw)];
-
-  for (const value of urls) {
-    const url = new URL(value);
-
-    if (url.protocol !== "https:" || url.hostname !== HOST) {
-      throw new Error(`Invalid URL for IndexNow: ${value}`);
-    }
-  }
-
-  if (urls.length === 0) {
-    throw new Error("No URLs available for IndexNow.");
-  }
-
-  const response = await fetch("https://api.indexnow.org/indexnow", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json; charset=utf-8"
-    },
-    body: JSON.stringify({
-      host: HOST,
-      key,
-      keyLocation,
-      urlList: urls
-    })
-  });
-
-  const body = await response.text();
-
-  if (![200, 202].includes(response.status)) {
-    throw new Error(
-      `IndexNow failed: HTTP ${response.status}; ${body}`
-    );
-  }
-
-  console.log(`IndexNow accepted ${urls.length} URLs.`);
-  console.log(`HTTP ${response.status}`);
+if (fs.existsSync(urlsFile)) {
+    urlList = fs.readFileSync(urlsFile, 'utf8')
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
 }
 
-main().catch(error => {
-  console.error(error.message);
-  process.exitCode = 1;
+if (urlList.length === 0) {
+    console.log('No URLs to ping.');
+    return;
+}
+
+const payload = JSON.stringify({
+    host: HOST,
+    key: KEY,
+    keyLocation: KEY_LOCATION,
+    urlList: urlList
 });
+
+const options = {
+    hostname: 'api.indexnow.org',
+    port: 443,
+    path: '/indexnow',
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+    }
+};
+
+const req = https.request(options, (res) => {
+    console.log(`IndexNow statusCode: ${res.statusCode}`);
+    res.on('data', (d) => {
+        process.stdout.write(d);
+    });
+});
+
+req.on('error', (error) => {
+    console.error('IndexNow Error:', error);
+});
+
+req.write(payload);
+req.end();
