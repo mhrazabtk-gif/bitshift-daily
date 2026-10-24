@@ -1,5 +1,5 @@
 
-name: Hourly Sitemap
+name: Hourly Sitemap and IndexNow
 
 on:
   schedule:
@@ -8,15 +8,13 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
   group: hourly-sitemap
   cancel-in-progress: false
 
 jobs:
-  generate:
+  generate-and-submit:
     runs-on: ubuntu-latest
 
     steps:
@@ -35,8 +33,17 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           git add sitemap.xml
+
           if ! git diff --cached --quiet; then
             git commit -m "Update hourly sitemap"
             git push
+          else
+            echo "Sitemap has no changes."
           fi
+
+      - name: Submit URLs to IndexNow
+        env:
+          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
+        run: node ping-indexnow.js
