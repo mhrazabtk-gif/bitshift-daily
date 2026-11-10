@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 
-const HOST = 'bitshift-daily.pages.dev';
+const HOST = 'bitshift-daily.pageaura.xyz';
 const KEY = 'f415bd52dd47451c8a88078c77c9ae87'; // Apni IndexNow key yahan dalein
 const KEY_LOCATION = `https://bitshift-daily.pages.dev/f415bd52dd47451c8a88078c77c9ae87.txt`;
 
