@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DOMAIN = 'https://bitshift-daily.pages.dev';
+const DOMAIN = 'https://bitshift-daily.pageaura.xyz';
 const KEY = 'f415bd52dd47451c8a88078c77c9ae87';
 
 const ROOT = __dirname;
